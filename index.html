@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Happy Birthday!</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Use Inter font family -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        
+        /* Base styles use Tailwind defaults, overriding body BG for light mode */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f3f9; /* Very light purple/gray default background */
+            scroll-behavior: smooth;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* Dark mode body BG applied via JS/Tailwind class */
+        .dark body {
+            background-color: #111827; /* Dark slate */
+        }
+
+        .flower-canvas {
+            touch-action: none;
+            cursor: pointer;
+        }
+        /* Custom cursor for typing effect */
+        #dynamic-message::after {
+            content: '|';
+            animation: blink 1s step-end infinite;
+        }
+        @keyframes blink {
+            from, to { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* --- CAROUSEL CSS --- */
+        /* Utility class to hide scrollbar (for a cleaner look) */
+        .scroll-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scroll-hide {
+            -ms-overflow-style: none; /* IE and Edge */
+            scrollbar-width: none; /* Firefox */
+        }
+        /* Defines the snap point for each card */
+        .card-snap {
+            scroll-snap-align: center;
+            flex-shrink: 0;
+            padding: 0 1rem; /* Adjust padding for spacing */
+            width: 100%; /* Default to one card per view on mobile */
+        }
+        @media (min-width: 768px) {
+            .card-snap {
+                width: 50%; /* Show two on tablet, snap center one */
+            }
+        }
+        @media (min-width: 1024px) {
+            .card-snap {
+                width: 33.3333%; /* Show three on desktop, snap center one */
+            }
+        }
+
+        /* --- FIREWORKS CSS --- */
+        #fireworks-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Allows clicks to pass through */
+            z-index: 1000;
+        }
+        /* Style for individual firework particles */
+        .firework {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+        }
+
+        /* Keyframe animation for explosion effect */
+        @keyframes firework-explode {
+            0% {
+                opacity: 1;
+                transform: translate(0, 0); /* Start at origin (explosion point) */
+                box-shadow: 0 0 5px currentColor;
+            }
+            100% {
+                opacity: 0;
+                /* Use CSS variables set by JS for displacement */
+                transform: translate(var(--dx), var(--dy)) scale(0.5); 
+            }
+        }
+    </style>
+    <script>
+        // Configure Tailwind to use 'class' strategy for dark mode (default is 'media')
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-purple': '#6D28D9', // Deep, elegant purple
+                        'secondary-purple': '#A78BFA', // Lighter purple for accents
+                        'light-purple': '#EDE9FE', // Very light purple background for sections
+                        'text-dark': '#4C1D95', // Dark purple text (used for flower)
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="text-text-dark dark:text-gray-300 antialiased">
+    <!-- Fireworks Container (Fixed Position) -->
+    <div id="fireworks-container"></div>
+
+    <!-- Header / Navigation -->
+    <header class="p-6 md:p-10 flex justify-between items-center">
+        <!-- New Logo/Name Element -->
+        <div class="text-lg font-extrabold text-primary-purple tracking-wider">
+            SHANICE WACHIA 
+        </div>
+        <nav class="flex items-center">
+            
+            <!-- Dark Mode Toggle Button -->
+            <button id="theme-toggle" class="p-2 rounded-full text-primary-purple dark:text-secondary-purple hover:bg-light-purple/50 dark:hover:bg-gray-700 transition duration-300 mr-4">
+                <!-- SVG Icon - set dynamically by JS -->
+            </button>
+
+            <!-- New Fireworks Button -->
+            <button id="fireworks-button" class="text-sm font-medium hover:text-secondary-purple dark:hover:text-primary-purple transition duration-300 mr-6">
+                Launch Fireworks!
+            </button>
+            <a href="#gallery" class="text-sm font-medium bg-primary-purple text-white py-2 px-4 rounded-full shadow-lg hover:shadow-xl transition duration-300">Gallery</a>
+        </nav>
+    </header>
+
+    <!-- Main Hero Section (Flower & Message) -->
+    <main id="home" class="min-h-screen flex items-center justify-center p-4">
+        <div class="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+
+            <!-- Dynamic Flower Canvas -->
+            <div class="flex justify-center lg:justify-end">
+                <canvas id="flowerCanvas" class="flower-canvas w-64 h-64 md:w-80 md:h-80 lg:w-96 lg:h-96 rounded-full shadow-2xl shadow-secondary-purple/50"></canvas>
+            </div>
+
+            <!-- Main Message -->
+            <div id="message" class="text-center lg:text-left p-6 lg:p-0">
+                <h1 class="text-5xl md:text-7xl font-extrabold mb-4 leading-tight text-primary-purple">
+                    Happy Birthday,
+                    <!-- Target for typing animation. min-h-12 prevents layout shift -->
+                    <span id="dynamic-message" class="block text-secondary-purple min-h-12"></span>
+                </h1>
+                <!-- Update text color for contrast in dark mode -->
+                <p class="text-xl md:text-2xl font-light leading-relaxed mb-6 text-gray-700 dark:text-gray-400">
+                    Wishing you a day as elegant and radiant as the flower you inspire. May this next year bring you all the joy, success, and tranquility you deserve.
+                </p>
+                <p class="text-lg font-semibold text-primary-purple">
+                    — With LOVE KADOGOO 👌
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Photo Gallery Section (Slideshow) -->
+    <section id="gallery" class="py-20 bg-light-purple/70 dark:bg-gray-800">
+        <div class="max-w-7xl mx-auto px-4 md:px-8">
+            <h2 class="text-4xl font-bold text-center mb-12 text-primary-purple">Moments</h2>
+
+            <!-- CAROUSEL CONTAINER -->
+            <div id="carousel-container" class="relative">
+                
+                <!-- CAROUSEL TRACK -->
+                <div id="image-carousel" class="flex scroll-hide snap-x snap-mandatory overflow-x-scroll -mx-4">
+                    <!-- Cards will be populated here by JavaScript -->
+                </div>
+
+                <!-- NAVIGATION DOTS -->
+                <div id="carousel-dots" class="flex justify-center mt-8 space-x-2">
+                    <!-- Dots will be populated here by JavaScript -->
+                </div>
+            </div>
+            
+            <p class="text-center mt-12 text-gray-500 dark:text-gray-500 text-sm italic">
+                (Double-click or tap the flower above to watch it bloom!)
+            </p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="p-6 text-center text-sm text-gray-500 dark:text-gray-500">
+        <p>&copy; 2025 HANDMADE WITH KOSO KOSO.</p>
+    </footer>
+
+    <!-- JavaScript for the Dynamic Flower, Typing Effect, Fireworks, and Dark Mode -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // --- Dark Mode Logic ---
+            const html = document.documentElement;
+            const themeToggle = document.getElementById('theme-toggle');
+            const userPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+            function updateTheme(isDark) {
+                if (isDark) {
+                    html.classList.add('dark');
+                    localStorage.setItem('theme', 'dark');
+                    // Set Sun Icon (Moon icon is used for the *current* theme)
+                    themeToggle.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>`;
+                } else {
+                    html.classList.remove('dark');
+                    localStorage.setItem('theme', 'light');
+                    // Set Moon Icon (Sun icon is used for the *current* theme)
+                    themeToggle.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>`;
+                }
+            }
+
+            function initializeTheme() {
+                const savedTheme = localStorage.getItem('theme');
+
+                if (savedTheme) {
+                    updateTheme(savedTheme === 'dark');
+                } else if (userPrefersDark) {
+                    updateTheme(true);
+                } else {
+                    updateTheme(false);
+                }
+            }
+
+            themeToggle.addEventListener('click', () => {
+                const isDark = html.classList.contains('dark');
+                updateTheme(!isDark);
+            });
+
+            // Initialize theme on page load
+            initializeTheme();
+
+            // --- Gallery Slideshow Logic ---
+            const galleryImages = [
+                {
+                    url: "1 (4).jpg",
+                    title: "The Beginning",
+                    color: "A78BFA"
+                },
+                {
+                    url: "1 (2).jpg",
+                    title: "Your Adventures",
+                    color: "D8B4FE"
+                },
+                {
+                    url: "1 (3).jpg",
+                    title: "Happy Today",
+                    color: "6D28D9"
+                },
+                {
+                    url: "1 (5).jpg",
+                    title: "Happy Day",
+                    color: "6D28D9"
+                },
+                {
+                    url: "1 (6).jpg",
+                    title: "MWaah Day",
+                    color: "6D28D9"
+                },
+                {
+                    url: "1 (7).jpg",
+                    title: "Woow Day",
+                    color: "6D28D9"
+                },
+                {
+                    url: "1 (8).jpg",
+                    title: "koso...",
+                    color: "6D28D9"
+                },
+                // Add more photos if needed for a richer gallery experience
+            ];
+
+            const imageCarousel = document.getElementById('image-carousel');
+            const carouselDots = document.getElementById('carousel-dots');
+            const REPEAT_COUNT = 3; // Repeat images 3 times to create the 'endless' scroll effect
+            let cardWidth = 0; // To be calculated on resize
+
+            function createCardHtml(image, index, originalIndex) {
+                const isPlaceholder = index >= galleryImages.length; // If index is repeated
+                return `
+                    <div class="card-snap" data-index="${originalIndex}">
+                        <div class="w-full h-80 md:h-96 rounded-xl overflow-hidden shadow-2xl transition duration-300 transform hover:scale-[1.01] cursor-pointer relative">
+                            <img src="${image.url}"
+                                 alt="${image.title}"
+                                 class="w-full h-full object-cover transition duration-500"
+                                 onerror="this.onerror=null;this.src='https://placehold.co/600x800/${image.color}/ffffff?text=Photo+${originalIndex + 1}';"
+                            >
+                            <div class="absolute inset-0 bg-primary-purple/30 flex items-center justify-center opacity-0 hover:opacity-100 transition duration-500">
+                                <span class="text-white text-xl font-bold">${image.title}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            function populateGallery() {
+                imageCarousel.innerHTML = '';
+                carouselDots.innerHTML = '';
+                let htmlContent = '';
+
+                // Create the repeating card set
+                for (let r = 0; r < REPEAT_COUNT; r++) {
+                    galleryImages.forEach((image, index) => {
+                        htmlContent += createCardHtml(image, index, index);
+                    });
+                }
+                imageCarousel.innerHTML = htmlContent;
+
+                // Create navigation dots for the *original* set of images
+                galleryImages.forEach((_, index) => {
+                    const dot = document.createElement('button');
+                    dot.className = 'w-3 h-3 rounded-full bg-gray-400 dark:bg-gray-600 transition-colors duration-300';
+                    dot.setAttribute('data-dot-index', index);
+                    dot.addEventListener('click', () => {
+                        // Scroll to the second set of images + the selected index
+                        const targetIndex = galleryImages.length + index; 
+                        scrollToCard(targetIndex);
+                    });
+                    carouselDots.appendChild(dot);
+                });
+
+                // Calculate card width for scrolling
+                const firstCard = imageCarousel.querySelector('.card-snap');
+                if (firstCard) {
+                    cardWidth = firstCard.offsetWidth;
+                }
+                
+                // Set initial position to the start of the second (main) image set
+                imageCarousel.scrollLeft = galleryImages.length * cardWidth;
+                updateDots();
+            }
+            
+            function scrollToCard(index) {
+                // Ensure smooth scroll behavior is used
+                imageCarousel.scrollTo({
+                    left: index * cardWidth + 1, // Add a slight offset to ensure snap works
+                    behavior: 'smooth'
+                });
+            }
+
+            function updateDots() {
+                // Determine which card is currently centered
+                const scrollLeft = imageCarousel.scrollLeft;
+                const totalCards = galleryImages.length * REPEAT_COUNT;
+
+                // Calculate the index of the centered card
+                const centerIndex = Math.round(scrollLeft / cardWidth);
+
+                // Map the current index back to the original image set (0, 1, 2)
+                const currentOriginalIndex = centerIndex % galleryImages.length;
+                
+                // Handle the 'endless' wrap-around scroll
+                // If we hit the beginning of the repeated sequence, jump to the middle sequence.
+                if (centerIndex < galleryImages.length) {
+                    // Jumps from the first set (index 0) back to the middle set (index N)
+                    imageCarousel.scrollLeft = galleryImages.length * cardWidth; 
+                    return;
+                }
+                // If we hit the end of the repeated sequence, jump back to the middle sequence.
+                if (centerIndex >= totalCards - galleryImages.length) {
+                    // Jumps from the last set (index 2N-1) back to the middle set (index N-1)
+                    imageCarousel.scrollLeft = galleryImages.length * cardWidth - cardWidth;
+                    return;
+                }
+
+                // Update dot appearance
+                carouselDots.querySelectorAll('button').forEach((dot, index) => {
+                    if (index === currentOriginalIndex) {
+                        dot.classList.remove('bg-gray-400', 'dark:bg-gray-600');
+                        dot.classList.add('bg-primary-purple', 'dark:bg-secondary-purple');
+                    } else {
+                        dot.classList.add('bg-gray-400', 'dark:bg-gray-600');
+                        dot.classList.remove('bg-primary-purple', 'dark:bg-secondary-purple');
+                    }
+                });
+            }
+
+            // Recalculate card width and re-center on resize
+            window.addEventListener('resize', () => {
+                const firstCard = imageCarousel.querySelector('.card-snap');
+                if (firstCard) {
+                    cardWidth = firstCard.offsetWidth;
+                    // Re-center on resize to maintain correct view
+                    imageCarousel.scrollLeft = galleryImages.length * cardWidth; 
+                }
+            });
+
+            // Update dots on scroll end
+            let scrollTimeout;
+            imageCarousel.addEventListener('scroll', () => {
+                clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(updateDots, 100);
+            });
+
+
+            // Run gallery setup
+            populateGallery();
+
+
+            // --- Flower Animation Logic ---
+            const canvas = document.getElementById('flowerCanvas');
+            const ctx = canvas.getContext('2d');
+            let center;
+            let petals = 12;
+            let bloomFactor = 0.5;
+            let rotation = 0;
+            let particles = [];
+            let isBloomed = false;
+            let targetBloomFactor = 0.5;
+            const PARTICLE_COUNT = 30;
+            const PARTICLE_SIZE = 2;
+
+            function initializeParticles() {
+                particles = [];
+                for (let i = 0; i < PARTICLE_COUNT; i++) {
+                    particles.push({
+                        x: center + (Math.random() - 0.5) * 100,
+                        y: center + (Math.random() - 0.5) * 100,
+                        vx: (Math.random() - 0.5) * 0.5,
+                        vy: (Math.random() - 0.5) * 0.5,
+                        life: Math.random() * 100 + 50,
+                        opacity: Math.random(),
+                        size: Math.random() * PARTICLE_SIZE + 0.5
+                    });
+                }
+            }
+
+            function setCanvasSize() {
+                const size = Math.min(window.innerWidth * 0.9, 400); 
+                const dpr = window.devicePixelRatio || 1;
+                
+                canvas.style.width = `${size}px`;
+                canvas.style.height = `${size}px`;
+                canvas.width = size * dpr;
+                canvas.height = size * dpr;
+                ctx.scale(dpr, dpr);
+                center = size / 2;
+            }
+
+            setCanvasSize();
+            initializeParticles(); 
+            window.addEventListener('resize', setCanvasSize);
+            
+            function drawFlower(ctx, center, radius, numPetals, bloom) {
+                ctx.save();
+                ctx.translate(center, center);
+                ctx.rotate(rotation);
+                const petalColor = (alpha) => `rgba(109, 40, 217, ${alpha})`; 
+
+                ctx.beginPath();
+                ctx.arc(0, 0, radius * bloom * 0.5, 0, Math.PI * 2);
+                ctx.fillStyle = petalColor(0.1 + bloom * 0.1);
+                ctx.fill();
+
+                for (let i = 0; i < numPetals; i++) {
+                    const angle = (Math.PI * 2 / numPetals) * i;
+                    ctx.save();
+                    ctx.rotate(angle);
+
+                    const petalLength = radius * bloom * 1.5;
+                    const petalWidth = radius * bloom * 0.5;
+
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.quadraticCurveTo(petalWidth / 2, -petalLength * 0.5, 0, -petalLength);
+                    ctx.quadraticCurveTo(-petalWidth / 2, -petalLength * 0.5, 0, 0);
+                    ctx.closePath();
+                    
+                    const alpha = 0.3 + (i % 2 === 0 ? 0.1 : 0.0) + (bloom * 0.4);
+                    ctx.fillStyle = petalColor(alpha);
+                    ctx.shadowColor = petalColor(0.8);
+                    ctx.shadowBlur = bloom * 10;
+                    ctx.fill();
+
+                    ctx.restore();
+                }
+
+                ctx.beginPath();
+                ctx.arc(0, 0, radius * 0.05 * bloom, 0, Math.PI * 2);
+                ctx.fillStyle = petalColor(1);
+                ctx.shadowBlur = 0;
+                ctx.fill();
+                
+                ctx.restore();
+            }
+
+            function updateParticles() {
+                for (let i = 0; i < particles.length; i++) {
+                    const p = particles[i];
+
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.life -= 1;
+                    p.opacity = p.life / 100;
+
+                    if (p.life < 0) {
+                        p.x = center + (Math.random() - 0.5) * 50 * bloomFactor;
+                        p.y = center + (Math.random() - 0.5) * 50 * bloomFactor;
+                        p.vx = (Math.random() - 0.5) * 0.5 * bloomFactor;
+                        p.vy = (Math.random() - 0.5) * 0.5 * bloomFactor;
+                        p.life = Math.random() * 100 + 50;
+                        p.size = Math.random() * PARTICLE_SIZE + 0.5;
+                    }
+
+                    ctx.fillStyle = `rgba(167, 139, 250, ${p.opacity * bloomFactor})`;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            function animate() {
+                const dpr = window.devicePixelRatio || 1;
+                ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+                rotation += 0.001 * bloomFactor;
+                bloomFactor += (targetBloomFactor - bloomFactor) * 0.03;
+                drawFlower(ctx, center, 100, petals, bloomFactor);
+                updateParticles();
+                requestAnimationFrame(animate);
+            }
+            
+            animate();
+
+            function toggleBloom() {
+                if (!isBloomed) {
+                    targetBloomFactor = 1.0;
+                    isBloomed = true;
+                } else {
+                    targetBloomFactor = 0.5;
+                    isBloomed = false;
+                }
+            }
+
+            canvas.addEventListener('dblclick', toggleBloom);
+            
+            let lastTap = 0;
+            canvas.addEventListener('touchend', function(event) {
+                const currentTime = new Date().getTime();
+                const tapLength = currentTime - lastTap;
+                if (tapLength < 300 && tapLength > 0) {
+                    toggleBloom();
+                }
+                lastTap = currentTime;
+            }, { passive: true });
+
+
+            // --- Typing Animation Logic ---
+            const dynamicMessageEl = document.getElementById('dynamic-message');
+            const messages = [
+                "Beautiful!",
+                "Sweetheart!",
+                "My Love!",
+                "Rabid Invasion!",
+                "Koso koso!",
+                "Sumbuaa!",
+                "Mama Bear!",
+            ];
+            
+            let messageIndex = 0;
+            let charIndex = 0;
+            let isDeleting = false;
+            let typingSpeed = 100;
+
+            function typeWriter() {
+                const currentMessage = messages[messageIndex];
+                
+                if (isDeleting) {
+                    charIndex--;
+                    typingSpeed = 50;
+                } else {
+                    charIndex++;
+                    typingSpeed = 100;
+                }
+
+                dynamicMessageEl.textContent = currentMessage.substring(0, charIndex);
+
+                if (!isDeleting && charIndex === currentMessage.length) {
+                    isDeleting = true;
+                    typingSpeed = 1500;
+                } else if (isDeleting && charIndex === 0) {
+                    isDeleting = false;
+                    messageIndex = (messageIndex + 1) % messages.length;
+                    typingSpeed = 500;
+                }
+
+                setTimeout(typeWriter, typingSpeed);
+            }
+
+            typeWriter();
+
+
+            // --- Fireworks Logic ---
+            const fireworksContainer = document.getElementById('fireworks-container');
+            const fireworksButton = document.getElementById('fireworks-button');
+            
+            // EXPANDED COLORS: Red, Gold, Green, Purple, Light Purple, White
+            const FIREWORK_COLORS = ['#FF4500', '#FFD700', '#32CD32', '#6D28D9', '#A78BFA', '#FFFFFF'];
+
+            function explode(x, y) {
+                const particleCount = 40;
+                
+                for (let i = 0; i < particleCount; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'firework';
+                    
+                    particle.style.left = `${x}px`;
+                    particle.style.top = `${y}px`;
+                    
+                    const color = FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)];
+                    particle.style.backgroundColor = color;
+                    particle.style.color = color; 
+
+                    const angle = Math.random() * Math.PI * 2;
+                    const distance = Math.random() * 100 + 50; 
+                    const dx = distance * Math.cos(angle);
+                    const dy = distance * Math.sin(angle);
+                    
+                    particle.style.setProperty('--dx', `${dx}px`);
+                    particle.style.setProperty('--dy', `${dy}px`);
+                    
+                    const duration = Math.random() * 1.5 + 0.8;
+                    particle.style.animation = `firework-explode ${duration}s ease-out forwards`;
+                    
+                    fireworksContainer.appendChild(particle);
+
+                    setTimeout(() => {
+                        particle.remove();
+                    }, duration * 1000 + 50);
+                }
+            }
+
+            function launchFireworks() {
+                fireworksButton.disabled = true;
+                setTimeout(() => { fireworksButton.disabled = false; }, 3000);
+
+                const explosionCount = 5; 
+                for (let i = 0; i < explosionCount; i++) {
+                    const x = Math.random() * window.innerWidth;
+                    const y = Math.random() * window.innerHeight * 0.6; 
+                    
+                    setTimeout(() => {
+                        explode(x, y);
+                    }, i * 500); 
+                }
+            }
+
+            fireworksButton.addEventListener('click', launchFireworks);
+            
+        });
+    </script>
+
+</body>
+</html>
